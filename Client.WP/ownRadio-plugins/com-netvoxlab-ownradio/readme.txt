@@ -2,15 +2,15 @@
 Contributors: netvoxlab
 Tags: radio, ownRadio, broadcast, music online
 Requires at least: 4.6
-Tested up to: 4.7
-Stable tag: 2017.05.29
+Tested up to: 5.1
+Stable tag: 2019.04.15
 License: GPLv3
 
 == Description ==
 
 Broadcast radio ownRadio. Listen to your favorite music only.
 
-Shortcode for input radio: [ownradio_player]
+Shortcode for input radio: [ownradio_new_player]
 
 Check official website for live demo <http://www.ownradio.ru>
 
@@ -42,7 +42,7 @@ Alternatively, you can find our plugin through your WordPress dashboard:
 
 = How do I display the ownRadio on pages and/or posts? =
 
-You need to insert shortcode `[ownradio_player]` in the page.
+You need to insert shortcode `[ownradio_new_player]` in the page.
 
 == Screenshots ==
 
@@ -50,6 +50,9 @@ You need to insert shortcode `[ownradio_player]` in the page.
 2. This is example of web site with the ownRadio player.
 
 == Changelog ==
+
+= 2019.02.27 =
+Changed application design.
 
 = 2017.04.28 =
 Changed application design.

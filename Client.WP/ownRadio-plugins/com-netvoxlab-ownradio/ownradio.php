@@ -2,7 +2,7 @@
 /*
 Plugin Name: com.netvoxlab.ownradio
 Description: Broadcast radio ownRadio. Listen to your favorite music only.
-Version: 2017.05.29
+Version: 2019.04.15
 Author: Ltd. NetVox Lab
 Author URI: http://www.netvoxlab.ru/
 License: GPLv3
@@ -21,11 +21,12 @@ You should have received a copy of the GNU General Public License
 along with com.netvoxlab.ownradio. If not, see <http://www.gnu.org/licenses/>.
 */
 
-define('NETVOXLAB_OWNRADIO_PLUGIN_VERSION', '2017.05.29');
+define('NETVOXLAB_OWNRADIO_PLUGIN_VERSION', '2019.04.15');
 define('NETVOXLAB_OWNRADIO_PLAYER_URL', plugin_dir_url( __FILE__ ));
 
 global $width;
 global $height;
+
 
 if( is_admin() )
     $my_settings_page = new netvoxlab_ownradio_player_shortcode();
@@ -165,6 +166,7 @@ if( is_admin() )
 			add_shortcode('ownradio_GetUserDevices', array(__CLASS__, 'nvxOwnRadioGetUserDevices_shortcode'));
 			add_shortcode('ownradio_GetUsersRating', array(__CLASS__, 'nvxOwnRadioGetUsersRating_shortcode'));
 			add_shortcode('ownradio_GetLastTracks', array(__CLASS__, 'nvxOwnRadioGetLastTracks_shortcode'));
+			add_shortcode('ownradio_googleAnalytics', array(__CLASS__, 'nvxOwnRadioPrintGoogleAnalytics'));
 
 			add_shortcode('ownradio_GetLastTracksWithRating', array(__CLASS__, 'nvxOwnRadioGetTracksHistoryByDeviceWithRating_shortcode'));
 
@@ -192,7 +194,7 @@ if( is_admin() )
 				));
 			}
 
-			$netvoxlab_ownradio_player_server_url = 'https://api.ownradio.ru/v4'; //$options["nvxownradiourl"];
+			$netvoxlab_ownradio_player_server_url = 'http://rdev.ownradio.ru'; //'https://api.ownradio.ru/v4'; //$options["nvxownradiourl"];
 
 			$scriptWithVar = "
 			<script type=\"text/javascript\">
@@ -223,7 +225,7 @@ if( is_admin() )
 
      if ($boxView == "small") {
        $hiddenClass = "hidden";
-       $boxWidth = "400px";
+       $boxWidth = "auto"; // Поставил авто так как при фиксированном размере в ряде случаев не помещается кнопка переключения трека
        $boxHeight = "40px";
        $position = "block";
        $netvoxlab_ownradio_wfm_sign = '
@@ -291,13 +293,13 @@ if( is_admin() )
                      <div class="ownRadioPlayer-name" id="radioGroup"></div>
                    </div>
 
-                   <div style="display: '.$position.'; width: 100%; text-align: -webkit-center !important;">
+                   <div id="buttons_block" style="position:relative; display: '.$position.'; width: 100%; text-align: -webkit-center !important;">
 
                      <div id="radioPlay" class="play-but radioPlay">
-                       <img src="'.$pauseBut.'" class="image-block"  id="radioPlayB" style="width:80px; height:80px"/>
-                       <img src="'.$playBut.'" class="image-block " id="radioPause" style="width:80px; height:80px"/>
+                       <img src="'.$pauseBut.'" class="image-block"  id="radioPlayB" style="width:100%; height:80px; margin-left:auto; margin-right:auto;"/>
+                       <img src="'.$playBut.'" class="image-block " id="radioPause" style="width:100%; height:80px; margin-left:auto;margin-right: auto"/>
                      </div>
-                      <img src="'.$nextBut.'" class="image-block radioNext" id="radioNext" style="width:50px; height:50px"/>
+                     <img src="'.$nextBut.'" class="image-block radioNext" id="radioNext" style="width:50px; height:50px"/>
 
                      <div class="progress-block"style="width: 95%; margin-top: 40px;">
 
@@ -321,8 +323,8 @@ if( is_admin() )
                       <h2>Просто радио.</h2>
                        <div class="app-desc">Это радио, а не проигрыватель и поэтому здесь нельзя вернуться к ранее проигранному треку, нельзя перематывать, можно лишь пропустить.то что вам не нравится.</div>
                         <div class="flex media">
-                          <a class="btn appstore" href="https://itunes.apple.com/app/ownradio/id1179868370?mt=8">	<img src="'.$appBut.'"/></a>
-                         <a class="btn appstore" href="https://itunes.apple.com/app/ownradio/id1179868370?mt=8"><img src="'.$googleBut.'"/></a>
+                          <a class="media-btn" href="https://itunes.apple.com/app/ownradio/id1179868370?mt=8">	<img class="media-pict" src="'.$appBut.'"/></a>
+                          <a class="media-btn" href="https://play.google.com/store/apps/details?id=ru.netvoxlab.ownradio"><img class="media-pict" src="'.$googleBut.'"/></a>
                         </div>
                       </div>
                    </div>
@@ -337,9 +339,9 @@ if( is_admin() )
 		 return $content . $netvoxlab_ownradio_wfm_sign ;
 	 }
 	 static function netvoxlab_ownradio_register_myscript(){
-		 wp_register_script('netvoxlab-ownradio-script', NETVOXLAB_OWNRADIO_PLAYER_URL . 'assets/js/scripts.js', [], NETVOXLAB_OWNRADIO_PLUGIN_VERSION);
-		 wp_register_script('netvoxlab-ownradio-script', NETVOXLAB_OWNRADIO_PLAYER_URL . 'assets/js/statisticsScripts.js', [], NETVOXLAB_OWNRADIO_PLUGIN_VERSION);
-		 wp_register_style('netvoxlab-ownradio-style', NETVOXLAB_OWNRADIO_PLAYER_URL . 'assets/css/ownRadio.min.css', [], NETVOXLAB_OWNRADIO_PLUGIN_VERSION);
+		wp_register_script('netvoxlab-ownradio-script', NETVOXLAB_OWNRADIO_PLAYER_URL . 'assets/js/scripts.js', [], NETVOXLAB_OWNRADIO_PLUGIN_VERSION);
+		wp_register_script('netvoxlab-ownradio-script', NETVOXLAB_OWNRADIO_PLAYER_URL . 'assets/js/statisticsScripts.js', [], NETVOXLAB_OWNRADIO_PLUGIN_VERSION);
+		wp_register_style('netvoxlab-ownradio-style', NETVOXLAB_OWNRADIO_PLAYER_URL . 'assets/css/ownRadio.min.css', [], NETVOXLAB_OWNRADIO_PLUGIN_VERSION);
 	 }
 
 	 static function netvoxlab_ownradio_enqueue_myscript() {
@@ -465,7 +467,23 @@ if( is_admin() )
 				 VK.Widgets.Comments("vk_comments", {limit:' .esc_html($atts['limit']). ', attach: "*"});
 			 </script>';
 		 }
+
+	//Функция добовляет google analytics
+	static function nvxOwnRadioPrintGoogleAnalytics ($atts, $content = null){
+			self::$netvoxlab_ownradio_add_script = true;
+			return $content.'<!-- Google Analytics -->
+			<script>
+			(function(i,s,o,g,r,a,m){i["GoogleAnalyticsObject"]=r;i[r]=i[r]||function(){
+			(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+			m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+			})(window,document,"script","https://www.google-analytics.com/analytics.js","ga");
+			ga("create", "UA-XXXXX-Y", "auto");
+			ga("send", "pageview");
+			</script>
+			<!-- End Google Analytics -->';
+		}
 	 }
+
 
 	 //функция получает имя и версию используемого браузера
 	 function getInfoBrowser(){
@@ -482,6 +500,8 @@ if( is_admin() )
 		 }
 		 return $browserInfo['name']. " v." . $browserInfo['version'];
 	 }
+
+	 
 
 	 // netvoxlab_ownradio_player_shortcode::init();
 

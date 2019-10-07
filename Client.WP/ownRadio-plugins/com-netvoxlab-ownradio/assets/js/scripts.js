@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', function() {
     nvxInitJSFuncs();
 }, false);
 
-
+var token = null;
 
 
 function guid() {
@@ -98,7 +98,9 @@ function player(){
 			audio:document.createElement('audio'),
 			name:document.querySelector('#radioName'),
 			group:document.querySelector('#radioGroup'),
-      time:document.querySelector('#track-time')
+			time:document.querySelector('#track-time'),
+			autoplay: true,
+			muted: true
 		},
 		prm = {
 			play:true,//состояние проигрывание/пауза
@@ -107,34 +109,32 @@ function player(){
 			ended:false, //файл проигрался до конца
 			loadTrack:true, //трек только загружен (если да-инициализоровать audio, вывести инфу о треке)
 			autoPlay: true,
+			
 		},
 		fnc = {
-			play:function(){
-
-
+			play: async function(){
 				if(!prm.nextTrack && !prm.waitNext){
 					fnc.nextTrack();
 				} else if(!prm.nextTrack && prm.waitNext) {
 					return;
 				}
-
 				if(prm.nextTrack){
+				let playBut = document.getElementById('radioPause');
+				let pauseBut = document.getElementById('radioPlayB');
 
-          let playBut = document.getElementById('radioPause');
-          let pauseBut = document.getElementById('radioPlayB');
 
-					if(prm.loadTrack){
-						prm.loadTrack = false;
+				if(prm.loadTrack){
+					prm.loadTrack = false;
 
-						if(prm.play){
-							prm.play = false;
-							obj.audio.pause();
-						}
+					if(prm.play){
+						prm.play = false;
+						obj.audio.pause();
+					}
 
-						prm.ended = false;
+					prm.ended = false;
 
-						obj.name.innerHTML = prm.nextTrack.name;
-						obj.group.innerHTML = prm.nextTrack.artist;
+					obj.name.innerHTML = prm.nextTrack.recname;
+					obj.group.innerHTML = prm.nextTrack.artist;
 
             var strTrackTime = document.getElementById('track-time');
             var strCurTime = document.getElementById('current-time');
@@ -146,7 +146,23 @@ function player(){
             // obj.audio.addEventListener('seeked', function() {
             obj.audio.onloadedmetadata = function() {
 
-              time = obj.audio.duration + 5;
+			  time = obj.audio.duration + 5;
+
+			  // Форматирование времени
+			  function formatSecondsAsTime(time) {
+				var hr  = Math.floor(time / 3600);
+				var min = Math.floor((time - (hr * 3600))/60);
+				var sec = Math.floor(time - (hr * 3600) -  (min * 60));
+			  
+				if (min < 10){ 
+				  min = "0" + min; 
+				}
+				if (sec < 10){ 
+				  sec  = "0" + sec;
+				}
+			  
+				return min + ':' + sec;
+			  }
 
               // //Изменение прогресса песни кликом
               // obj.audio.oncanplay = function() {
@@ -170,13 +186,12 @@ function player(){
               //   });
               // };
 
+              strTrackTime.innerHTML = formatSecondsAsTime(obj.audio.duration);
+              strCurTime.innerHTML = "00:00";
 
-
-
-              strTrackTime.innerHTML = Math.round(time);
-              strCurTime.innerHTML = 0;
 
               let elem = document.getElementById("myBar");
+
 
               let leftTime = time;
               let leng = time/100;
@@ -184,8 +199,11 @@ function player(){
 
               function frame() {
                 if(prm.play){
-
-                  width += 0.01;
+					let cTime = obj.audio.currentTime;
+					let cDuration = obj.audio.duration;
+					elem.style.width = (cTime+0.25)/cDuration*100 +'%';
+					trackTime();
+                  /*width += 0.01;
                   if(curTime < time) {
                     curTime += (leng/100);
                   }
@@ -194,78 +212,94 @@ function player(){
 
                   if(width < 100) {
                     elem.style.width = width + '%';
-                  }
+                  }*/
                 }
               }
 
-              function trackTime() {
+            function trackTime() {
                 leftTime = (Math.round(time) - Math.round(curTime));
 
                 seconds = curTime % 60;
                 minutes = (curTime - seconds)/60;
-                strCurTime.innerHTML = minutes + ":" + ("0" + Math.round(seconds)).slice(-2);
+				strCurTime.innerHTML = formatSecondsAsTime(obj.audio.currentTime);
+				//minutes + ":" + ("0" + Math.round(seconds)).slice(-2);//formatSecondsAsTime(obj.audio.currentTime);
 
                 leftSeconds = leftTime % 60;
-                leftMinutes = (leftTime - leftSeconds)/60;
-                strTrackTime.innerHTML = "-" + leftMinutes + ":" + ("0" + Math.round(leftSeconds)).slice(-2);
+				leftMinutes = (leftTime - leftSeconds)/60;
+				// время в секундах 
+				function parseTime(s) {
+					var c = s.split(':');
+					return parseInt(c[0]) * 60 + parseInt(c[1]);
+				 }
+				 // Отсчет времени от начала проигрования трека до его конца
+				let diffTime = parseTime(formatSecondsAsTime(obj.audio.duration)) - parseTime(formatSecondsAsTime(obj.audio.currentTime));
+				strTrackTime.innerHTML = "-" + formatSecondsAsTime(diffTime);
+				//"-" + leftMinutes + ":" + ("0" + Math.round(leftSeconds)).slice(-2);//formatSecondsAsTime(obj.audio.duration);
+				
               }
             };
-            // });
+			
+			obj.audio.src = await getTrack(prm.nextTrack.recid);
+
+			// ОБРЕЗАЕМ ИМЯ ТРЕКА ДЛИННЕЕ 26 СИМВОЛОВ
+			var strTrackName = document.getElementById('radioName');
+			var cutTrackName = strTrackName.innerText;
+			
+			var slicedName = cutTrackName.slice(0,35);
+			if (slicedName.length < cutTrackName.length) {
+				slicedName += '...';
+				obj.name.innerHTML = slicedName;
+			}
+
+			var strTrackGroup = document.getElementById('radioGroup');
+			var cutTrackGroup = strTrackGroup.innerText;
+			var slicedGroup = cutTrackGroup.slice(0,35);
+			if (slicedGroup.length < cutTrackGroup.length) {
+				slicedGroup += '...';
+				obj.group.innerHTML = slicedGroup;
+			}
+			
+			console.log('slicedGroup ' + slicedGroup);
+			console.log('cutTrackName: ' + slicedName);
+			console.log('play');
+		}
+
+		
 
 
-
-
-
-						obj.audio.src = api+'/tracks/'+prm.nextTrack.id;
-
-
-						// ОБРЕЗАЕМ ИМЯ ТРЕКА ДЛИННЕЕ 26 СИМВОЛОВ
-						var strTrackName = document.getElementById('radioName');
-						var cutTrackName = strTrackName.innerText;
-						var slicedName = cutTrackName.slice(0,35);
-						if (slicedName.length < cutTrackName.length) {
-							slicedName += '...';
-							obj.name.innerHTML = slicedName;
-						}
-
-						var strTrackGroup = document.getElementById('radioGroup');
-						var cutTrackGroup = strTrackGroup.innerText;
-						var slicedGroup = cutTrackGroup.slice(0,35);
-						if (slicedGroup.length < cutTrackGroup.length) {
-							slicedGroup += '...';
-							obj.group.innerHTML = slicedGroup;
-						}
-
-						console.log('upload path ' + prm.nextTrack.pathupload)
-						console.log('time execute: ' + prm.nextTrack.timeexecute)
-					}
-
-					console.log('play');
-
-
-					prm.play = !prm.play;
+		prm.play = !prm.play;
 
           if(prm.play){
             if(pauseBut != null && playBut != null) {
               pauseBut.style.display = "block";
               playBut.style.display = "none";
-            }
-            obj.audio.play();
-            obj.play.classList.add('pause');
+			}
+			
+			let audioPromise = obj.audio.play();
+			// obj.audio.play возвращает promise поэтому без проверки будет ошибка и автовоспроизведения не будет
+			audioPromise.then(_=> {
+					obj.audio.play();
+					obj.play.classList.add('pause');
+			})
+			.catch(error=>{
+					obj.audio.pause();
+					obj.play.classList.remove('pause');
+					prm.play = false;
+			})
+			console.log(prm.play);
           }else{
             if(pauseBut != null && playBut != null) {
               pauseBut.style.display = "none";
-              playBut.style.display = "block";
+			  playBut.style.display = "block";
             }
             obj.audio.pause();
             obj.play.classList.remove('pause');
           }
 
-
-
 				}
 			},
 			next:function(){
+				obj.audio.pause();// останавливаем воспроизведение, чтобы избежать проигрование текущего трека во время загрузки следующего
 				if(!prm.nextTrack){
 					prm.waitNext = true;
 					fnc.nextTrack();
@@ -278,16 +312,19 @@ function player(){
 										(date.getHours()<10?'0'+date.getHours():date.getHours())+':'+
 										(date.getMinutes()<10?'0'+date.getMinutes():date.getMinutes())+':'+
 										(date.getSeconds()<10?'0'+date.getSeconds():date.getSeconds()),
-							data = new FormData();
-						data.append('islisten',(prm.ended?'1':'-1'));
-						data.append('lastlisten',dateFormat);
-						xhr.open("POST", api+'/histories/'+ownRadioId+'/'+prm.nextTrack.id, true);
+							//todo get userid by deviceid
+							data =  JSON.stringify({"fields": 
+								{"recid": guid(), "trackid": prm.nextTrack.recid, "deviceid": ownRadioId, "userid": ownRadioId, "lastlisten": dateFormat, "islisten": prm.ended?'1':'-1' },
+									"method": "savehistory"});
+									
+						xhr.open("POST", api+'/api/executejs', true);
+						xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+						xhr.setRequestHeader('Authorization', 'Bearer ' + getRdevAuthToken());
 						preloaderTrak();
 						xhr.onreadystatechange = function(){
 							if (xhr.readyState != 4) return;
 							if(xhr.status == 200){
 								console.log('Данные о треке записаны в историю');
-
 							}else{
 								console.log('Ошибка отправки данных о треке.');
 
@@ -308,37 +345,48 @@ function player(){
 			},
 			nextTrack:function(){
 				prm.waitNext = true;
-					var xhr = new XMLHttpRequest();
-					xhr.open('GET', apiNext, true);
+					var xhr = new XMLHttpRequest(),
+						data = JSON.stringify({"fields": 
+								{"deviceid": ownRadioId, "ratio": 0},
+									"method": "nexttrackbyratio"});
+					xhr.open('POST', api + '/api/executejs', true);
+					
+					xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+					xhr.setRequestHeader('Authorization', 'Bearer ' + getRdevAuthToken());
 					preloaderTrak();
-					xhr.onreadystatechange = function(){
+					xhr.onreadystatechange = async function(){
 						if (xhr.readyState != 4) return;
 
 						if(xhr.status == 200){
-							prm.nextTrack = JSON.parse(xhr.response);
-
-							if(!prm.nextTrack){
+							var response = JSON.parse(xhr.response);
+							if (response != null && response != 'undefined') {
+								
+								prm.nextTrack = response.result[0];
+							// if(!prm.nextTrack){
 								//todo
 								if (obj.name == null) {
 									fnc.init();
 								}
+								
 								if (obj.name != null) {
-									obj.name.innerHTML = prm.nextTrack.name;
+									obj.name.innerHTML = prm.nextTrack.recname;
 									obj.group.innerHTML = prm.nextTrack.artist;
-									obj.audio.src = api+'/tracks/'+prm.nextTrack.id;
-									console.log('upload path' + prm.nextTrack.pathupload)
+									obj.audio.src = await getTrack(prm.nextTrack.recid);
+									console.log('src load');
 								}
-							}
 							prm.waitNext = false;
+							
 							prm.loadTrack = true;
-              clearInterval(window.bar_id);
+							
+              				clearInterval(window.bar_id);
 							fnc.play();
+							}
 						}else{
 							console.log('Ошибка получения данных с сервера.');
 							console.log(xhr);
 						}
 					}
-					xhr.send();
+					xhr.send(data);
 			},
 			init: function() {
 				obj = {
@@ -350,6 +398,15 @@ function player(){
 				};
 				if (obj.play != null) {
 					obj.play.addEventListener('click', fnc.play);
+					obj.play.addEventListener('click', function(){
+						if(ga){
+							ga('send', {
+								hitType: 'event',
+								eventCategory: 'Music',
+								eventAction: 'play',
+							  });
+						}
+					});
 					obj.next.addEventListener('click', fnc.next);
 					obj.audio.onended = fnc.ended;
 
@@ -456,8 +513,44 @@ var player = player();
 			// }
 		}
 	}
-
-
+	/* Получение токена авторизации */
+	function getRdevAuthToken(isAsync = false){
+		
+		var xhr = new XMLHttpRequest(),
+			data = JSON.stringify({login: "admin", password: "2128506"});
+		xhr.open("POST", api + '/auth/login', isAsync);
+		xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+		xhr.onreadystatechange = function() {
+			if (xhr.readyState == XMLHttpRequest.DONE && xhr.status == 200) {
+				var response = JSON.parse(xhr.response);
+				token = response.token;
+			}
+		}
+		xhr.send(data);
+		return token;
+	}
+	
+	async function getTrack(recid){
+		let myHeaders = new Headers();
+		myHeaders.append("Content-Type", "application/json;charset=UTF-8");
+		myHeaders.append('Authorization', 'Bearer ' + getRdevAuthToken());
+		var data = JSON.stringify({"fields": {"recid": recid}, "method": "gettrack", "resulttype": "filestream"});
+		let myRequest = new Request(api + '/api/executejs');
+		
+		const response = await fetch(myRequest, {
+			method: 'POST',
+			headers: myHeaders, 
+			body: data
+		});
+		const data1 = await response.blob();
+		if (response.ok) {
+			let objectURL = URL.createObjectURL(data1);
+			return objectURL;
+		} else {
+			throw new Error('HTTP error, status = ' + response.status);
+		}
+	}
+	
 	//функция просмотра рейтинга пользователей по количеству своих треков и количеству полученных за последние сутки треков
 	// function nvxGetUsersRating(countUsers) {
 	// //	var countUsers = jQuery("#nvxTxtCountRows").val();
